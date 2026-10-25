@@ -1,0 +1,7 @@
+path: C:\Users\linco\Desktop\POTHOLE DETECTION\Pothole.v1-raw.yolov4pytorch
+train: train
+val: valid
+test: test
+
+nc: 1
+names: ['pothole']

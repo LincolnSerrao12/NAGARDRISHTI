@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pothole Detection AI - Smart Road Analysis</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #ec4899;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --surface-alt: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: var(--text-primary);
+        }
+
+        .container {
+            max-width: 1300px;
+            width: 100%;
+            background: var(--surface);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 50px 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.5;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .header-title {
+            font-size: 3em;
+            font-weight: 800;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .header-subtitle {
+            font-size: 1.1em;
+            opacity: 0.95;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 40px;
+            padding: 50px 40px;
+        }
+
+        .content.comparison-mode {
+            grid-template-columns: 1fr;
+        }
+
+        @media (max-width: 1024px) {
+            .content {
+                grid-template-columns: 1fr;
+                gap: 30px;
+                padding: 30px;
+            }
+            .header-title {
+                font-size: 2.2em;
+            }
+        }
+
+        .upload-section {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .card {
+            background: var(--surface-alt);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.1);
+        }
+
+        .upload-area {
+            border: 2px dashed var(--primary);
+            border-radius: 16px;
+            padding: 50px 30px;
+            text-align: center;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(236, 72, 153, 0.05) 100%);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 320px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .upload-area:hover {
+            border-color: var(--secondary);
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(236, 72, 153, 0.08) 100%);
+        }
+
+        .upload-area.drag-over {
+            border-color: var(--secondary);
+            transform: scale(1.02);
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(236, 72, 153, 0.12) 100%);
+        }
+
+        .upload-area.active {
+            border-color: var(--success);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%);
+        }
+
+        .upload-area input {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 4em;
+            margin-bottom: 16px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .upload-text {
+            font-size: 1.15em;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .upload-subtext {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.95em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.85em;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            min-width: 120px;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.9em;
+        }
+
+        .btn-detect {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-detect:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-detect:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-clear {
+            background: var(--border);
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .btn-clear:hover {
+            background: #cbd5e1;
+            transform: translateY(-2px);
+        }
+
+        .results-section {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .result-image-container {
+            border-radius: 16px;
+            overflow: hidden;
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            min-height: 400px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+        }
+
+        .result-image {
+            max-width: 100%;
+            max-height: 600px;
+            width: auto;
+            height: auto;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .result-video {
+            max-width: 100%;
+            max-height: 600px;
+            width: auto;
+            height: auto;
+            background: #000;
+            border-radius: 8px;
+        }
+
+        .video-download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+            padding: 14px 28px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.9em;
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
+        }
+
+        .video-download-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(99, 102, 241, 0.4);
+        }
+
+        .placeholder {
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 60px 40px;
+            font-size: 1.1em;
+        }
+
+        .results-info {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(236, 72, 153, 0.05) 100%);
+            border-radius: 16px;
+            padding: 28px;
+            border: 1px solid var(--border);
+            animation: slideUp 0.5s ease-out;
+        }
+
+        .results-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .results-header-icon {
+            font-size: 1.8em;
+        }
+
+        .results-header-title {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 8px 16px rgba(99, 102, 241, 0.1);
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .detections-list {
+            max-height: 320px;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+
+        .detections-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .detections-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .detections-list::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        .detections-list::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+
+        .detection-item {
+            background: var(--surface);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .detection-item:hover {
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+            transform: translateX(4px);
+        }
+
+        .detection-id {
+            font-weight: 700;
+            color: var(--text-primary);
+            font-size: 0.95em;
+        }
+
+        .detection-conf {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%);
+            color: var(--primary);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .spinner-wrapper {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .spinner {
+            border: 4px solid var(--border);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading p {
+            font-size: 1em;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .message {
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            display: none;
+            border-left: 4px solid;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.error {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%);
+            color: #dc2626;
+            border-left-color: #dc2626;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .message.success {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%);
+            color: #059669;
+            border-left-color: #10b981;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .message::before {
+            font-size: 1.2em;
+        }
+
+        .message.error::before {
+            content: '⚠️';
+        }
+
+        .message.success::before {
+            content: '✓';
+        }
+
+        /* Comparison Layout Styles */
+        .comparison-container {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            width: 100%;
+        }
+
+        .comparison-videos {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            width: 100%;
+        }
+
+        .comparison-video-wrapper {
+            border-radius: 16px;
+            overflow: hidden;
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .video-label {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 12px 16px;
+            font-weight: 600;
+            text-align: center;
+            font-size: 0.95em;
+        }
+
+        .video-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+            min-height: 400px;
+            position: relative;
+        }
+
+        .comparison-video {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+        }
+
+        .video-sync-controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            background: var(--surface-alt);
+            border-top: 1px solid var(--border);
+        }
+
+        .sync-play-btn {
+            padding: 12px 32px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sync-play-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
+        }
+
+        .sync-play-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .comparison-images {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            width: 100%;
+        }
+
+        .comparison-image-wrapper {
+            border-radius: 16px;
+            overflow: hidden;
+            background: var(--surface-alt);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .image-label {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 12px 16px;
+            font-weight: 600;
+            text-align: center;
+            font-size: 0.95em;
+        }
+
+        .image-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #f5f5f5;
+            min-height: 400px;
+            padding: 16px;
+        }
+
+        .comparison-image {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            border-radius: 8px;
+        }
+
+        @media (max-width: 1024px) {
+            .comparison-videos,
+            .comparison-images {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <div class="header-title">
+                    <span>🚀</span>
+                    <span>Pothole Detection AI</span>
+                </div>
+                <div class="header-subtitle">Advanced AI-Powered Road Surface Analysis</div>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Upload Section -->
+            <div class="upload-section">
+                <div id="uploadArea" class="upload-area">
+                    <input type="file" id="fileInput" accept="image/*,video/*">
+                    <div class="upload-icon">📸</div>
+                    <div class="upload-text">Upload Image or Video</div>
+                    <div class="upload-subtext">Click to select or drag & drop<br/>PNG, JPG, BMP (Images) | MP4, MOV, AVI (Videos)</div>
+                </div>
+
+                <div id="message" class="message"></div>
+
+                <div id="loading" class="loading">
+                    <div class="spinner-wrapper">
+                        <div class="spinner"></div>
+                    </div>
+                    <p id="loadingText">Analyzing image...</p>
+                </div>
+
+                <div class="buttons">
+                    <button class="btn-clear" id="clearBtn">🔄 Reset</button>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="results-section">
+                <!-- Comparison Container (hidden by default) -->
+                <div id="comparisonContainer" class="comparison-container" style="display: none;">
+                    <!-- Image Comparison -->
+                    <div id="imageComparisonSection" style="display: none;">
+                        <div class="comparison-images">
+                            <div class="comparison-image-wrapper">
+                                <div class="image-label">📷 Original Image</div>
+                                <div class="image-container">
+                                    <img id="originalImage" class="comparison-image" alt="Original Image">
+                                </div>
+                            </div>
+                            <div class="comparison-image-wrapper">
+                                <div class="image-label">🔍 Analyzed Image (Potholes Detected)</div>
+                                <div class="image-container">
+                                    <img id="analyzedImage" class="comparison-image" alt="Analyzed Image">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Video Comparison -->
+                    <div id="videoComparisonSection" style="display: none;">
+                        <div class="comparison-videos">
+                            <div class="comparison-video-wrapper">
+                                <div class="video-label">📹 Original Video</div>
+                                <div class="video-container">
+                                    <video id="originalVideo" class="comparison-video" crossorigin="anonymous"></video>
+                                </div>
+                            </div>
+                            <div class="comparison-video-wrapper">
+                                <div class="video-label">🔍 Analyzed Video (Potholes Detected)</div>
+                                <div class="video-container">
+                                    <video id="analyzedVideo" class="comparison-video" crossorigin="anonymous"></video>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="video-sync-controls">
+                            <button id="syncPlayBtn" class="sync-play-btn">▶️ Play Both Videos</button>
+                            <span style="color: var(--text-secondary); font-size: 0.9em; margin-left: 16px;">Videos will play simultaneously</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Info -->
+                <div class="results-info" id="resultsInfo" style="display: none;">
+                    <div class="results-header">
+                        <span class="results-header-icon">📈</span>
+                        <span class="results-header-title">Detection Results</span>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Potholes Found</div>
+                            <div class="stat-value" id="totalDetections">0</div>
+                        </div>
+                    </div>
+
+                    <div id="detectionsList" class="detections-list"></div>
+                </div>
+
+                <!-- Default Placeholder -->
+                <div id="defaultPlaceholder" class="result-image-container" style="display: flex;">
+                    <div class="placeholder">
+                        <div style="font-size: 3em; margin-bottom: 12px;">📊</div>
+                        Results will appear here
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const clearBtn = document.getElementById('clearBtn');
+        const loading = document.getElementById('loading');
+        const loadingText = document.getElementById('loadingText');
+        const message = document.getElementById('message');
+        const resultsInfo = document.getElementById('resultsInfo');
+        const totalDetections = document.getElementById('totalDetections');
+        const detectionsList = document.getElementById('detectionsList');
+
+        // New comparison elements
+        const comparisonContainer = document.getElementById('comparisonContainer');
+        const imageComparisonSection = document.getElementById('imageComparisonSection');
+        const videoComparisonSection = document.getElementById('videoComparisonSection');
+        const originalImage = document.getElementById('originalImage');
+        const analyzedImage = document.getElementById('analyzedImage');
+        const originalVideo = document.getElementById('originalVideo');
+        const analyzedVideo = document.getElementById('analyzedVideo');
+        const syncPlayBtn = document.getElementById('syncPlayBtn');
+        const defaultPlaceholder = document.getElementById('defaultPlaceholder');
+
+        let selectedFile = null;
+        let isProcessing = false;
+        let originalFileUrl = null;
+
+        // Upload area click
+        uploadArea.addEventListener('click', () => {
+            if (!isProcessing) fileInput.click();
+        });
+
+        // File input change - auto detect
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            if (!isProcessing) uploadArea.classList.add('drag-over');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('drag-over');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            if (e.dataTransfer.files.length > 0 && !isProcessing) {
+                handleFileSelect(e.dataTransfer.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            const isImage = file.type.startsWith('image/');
+            const isVideo = file.type.startsWith('video/');
+
+            if (!isImage && !isVideo) {
+                showMessage('Please select an image or video file (PNG, JPG, BMP, MP4, MOV, AVI)', 'error');
+                return;
+            }
+
+            const maxSize = 100 * 1024 * 1024; // 100MB
+            if (file.size > maxSize) {
+                showMessage('File size exceeds 100MB limit. Please select a smaller file.', 'error');
+                return;
+            }
+
+            selectedFile = file;
+            uploadArea.classList.add('active');
+            uploadArea.querySelector('.upload-text').textContent = `✅ ${file.name}`;
+            uploadArea.querySelector('.upload-subtext').textContent = `File size: ${(file.size / 1024 / 1024).toFixed(2)}MB`;
+
+            // Store original file URL
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                originalFileUrl = e.target.result;
+
+                // Show preview in comparison layout
+                defaultPlaceholder.style.display = 'none';
+                comparisonContainer.style.display = 'flex';
+                imageComparisonSection.style.display = 'none';
+                videoComparisonSection.style.display = 'none';
+
+                if (isImage) {
+                    imageComparisonSection.style.display = 'block';
+                    originalImage.src = e.target.result;
+                    analyzedImage.src = '';
+                } else {
+                    videoComparisonSection.style.display = 'block';
+                    originalVideo.src = e.target.result;
+                    analyzedVideo.src = '';
+                }
+            };
+            reader.readAsDataURL(file);
+
+            resultsInfo.style.display = 'none';
+
+            // Auto-detect after a short delay
+            setTimeout(() => runDetection(), 500);
+        }
+
+        async function runDetection() {
+            if (!selectedFile || isProcessing) return;
+
+            isProcessing = true;
+            const isImage = selectedFile.type.startsWith('image/');
+            const isVideo = selectedFile.type.startsWith('video/');
+
+            const formData = new FormData();
+            if (isImage) {
+                formData.append('image', selectedFile);
+            } else if (isVideo) {
+                formData.append('video', selectedFile);
+            }
+            formData.append('confidence', 0.5);
+
+            loading.style.display = 'block';
+            loadingText.textContent = isVideo ?
+                'Processing video frame-by-frame...\nThis may take a few moments' :
+                'Analyzing image with AI...';
+            message.style.display = 'none';
+            clearBtn.disabled = true;
+
+            try {
+                const response = await fetch('/detect', {
+                    method: 'POST',
+                    body: formData
+                }).catch(err => {
+                    throw new Error('Cannot connect to server. Make sure Flask app is running on http://localhost:5000');
+                });
+
+                if (isVideo) {
+                    if (response.ok) {
+                        try {
+                            const data = await response.json();
+
+                            if (data.success && data.video_url) {
+                                const videoUrl = data.video_url;
+                                const downloadUrl = data.download_url || videoUrl.replace('/video/', '/download/');
+
+                                // Update video sources
+                                analyzedVideo.src = videoUrl;
+
+                                // Reset videos to start
+                                originalVideo.currentTime = 0;
+                                analyzedVideo.currentTime = 0;
+
+                                totalDetections.textContent = data.total_detected;
+
+                                const detectionMsg = data.total_detected === 0 ?
+                                    '✅ Video processed - No potholes detected' :
+                                    `✅ Video processed - ${data.total_detected} pothole${data.total_detected !== 1 ? 's' : ''} found`;
+
+                                detectionsList.innerHTML = `
+                                    <div style="display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 24px;">
+                                        <div style="text-align: center; color: #64748b; font-weight: 500;">${detectionMsg}</div>
+                                        <button onclick="downloadVideoFile('${downloadUrl}')" class="video-download-btn" style="border: none;">
+                                            ⬇️ Download Processed Video
+                                        </button>
+                                    </div>
+                                `;
+                                resultsInfo.style.display = 'block';
+
+                                showMessage(`Video processing complete!`, 'success');
+                            } else {
+                                showMessage(data.error || 'Video processing failed', 'error');
+                            }
+                        } catch (parseError) {
+                            console.error('Response parsing error:', parseError);
+                            showMessage(`Error processing response: ${parseError.message}`, 'error');
+                        }
+                    } else {
+                        try {
+                            const data = await response.json();
+                            showMessage(data.error || 'Video processing failed', 'error');
+                        } catch {
+                            showMessage(`Video processing failed: ${response.statusText}`, 'error');
+                        }
+                    }
+                } else {
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        analyzedImage.src = data.image;
+                        totalDetections.textContent = data.total_detected;
+
+                        if (data.detections.length > 0) {
+                            detectionsList.innerHTML = '';
+                            data.detections.forEach((det, idx) => {
+                                const div = document.createElement('div');
+                                div.className = 'detection-item';
+                                const confValue = parseFloat(det.confidence);
+                                const confPercent = (confValue * 100).toFixed(1);
+                                div.innerHTML = `
+                                    <span class="detection-id">Pothole #${idx + 1}</span>
+                                    <span class="detection-conf">${confPercent}%</span>
+                                `;
+                                detectionsList.appendChild(div);
+                            });
+                        } else {
+                            detectionsList.innerHTML = '<div style="text-align: center; color: #10b981; padding: 24px; font-weight: 500;">✅ No potholes detected - Road surface looks good!</div>';
+                        }
+
+                        resultsInfo.style.display = 'block';
+                        const message_text = data.total_detected === 0 ?
+                            'Analysis complete - No potholes found!' :
+                            `Found ${data.total_detected} pothole${data.total_detected !== 1 ? 's' : ''}!`;
+                        showMessage(message_text, 'success');
+                    } else {
+                        showMessage(data.error || 'Detection failed', 'error');
+                    }
+                }
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+                console.error('Detection error:', error);
+            } finally {
+                loading.style.display = 'none';
+                clearBtn.disabled = false;
+                isProcessing = false;
+            }
+        }
+
+        // Clear button
+        clearBtn.addEventListener('click', () => {
+            selectedFile = null;
+            originalFileUrl = null;
+            fileInput.value = '';
+            uploadArea.classList.remove('active');
+            uploadArea.querySelector('.upload-text').textContent = 'Upload Image or Video';
+            uploadArea.querySelector('.upload-subtext').textContent = 'Click to select or drag & drop\nPNG, JPG, BMP (Images) | MP4, MOV, AVI (Videos)';
+
+            // Reset videos
+            originalVideo.src = '';
+            analyzedVideo.src = '';
+            originalImage.src = '';
+            analyzedImage.src = '';
+
+            comparisonContainer.style.display = 'none';
+            defaultPlaceholder.style.display = 'flex';
+            resultsInfo.style.display = 'none';
+            message.style.display = 'none';
+            loading.style.display = 'none';
+            isProcessing = false;
+        });
+
+        // Synchronized video playback
+        syncPlayBtn.addEventListener('click', () => {
+            if (originalVideo.paused) {
+                originalVideo.play();
+                analyzedVideo.play();
+                syncPlayBtn.textContent = '⏸️ Pause Both Videos';
+            } else {
+                originalVideo.pause();
+                analyzedVideo.pause();
+                syncPlayBtn.textContent = '▶️ Play Both Videos';
+            }
+        });
+
+        // Keep videos synchronized during playback
+        originalVideo.addEventListener('play', () => {
+            if (analyzedVideo.paused) analyzedVideo.play();
+            syncPlayBtn.textContent = '⏸️ Pause Both Videos';
+        });
+
+        analyzedVideo.addEventListener('play', () => {
+            if (originalVideo.paused) originalVideo.play();
+            syncPlayBtn.textContent = '⏸️ Pause Both Videos';
+        });
+
+        originalVideo.addEventListener('pause', () => {
+            if (!analyzedVideo.paused) analyzedVideo.pause();
+            syncPlayBtn.textContent = '▶️ Play Both Videos';
+        });
+
+        analyzedVideo.addEventListener('pause', () => {
+            if (!originalVideo.paused) originalVideo.pause();
+            syncPlayBtn.textContent = '▶️ Play Both Videos';
+        });
+
+        // Keep video playback in sync
+        let syncTimeout;
+        originalVideo.addEventListener('timeupdate', () => {
+            clearTimeout(syncTimeout);
+            syncTimeout = setTimeout(() => {
+                if (Math.abs(originalVideo.currentTime - analyzedVideo.currentTime) > 0.5) {
+                    analyzedVideo.currentTime = originalVideo.currentTime;
+                }
+            }, 100);
+        });
+
+        analyzedVideo.addEventListener('timeupdate', () => {
+            clearTimeout(syncTimeout);
+            syncTimeout = setTimeout(() => {
+                if (Math.abs(analyzedVideo.currentTime - originalVideo.currentTime) > 0.5) {
+                    originalVideo.currentTime = analyzedVideo.currentTime;
+                }
+            }, 100);
+        });
+
+        function downloadVideoFile(downloadUrl) {
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.setAttribute('download', '');
+            link.style.display = 'none';
+            document.body.appendChild(link);
+
+            link.click();
+
+            setTimeout(() => {
+                document.body.removeChild(link);
+            }, 100);
+        }
+
+        function showMessage(text, type) {
+            message.innerHTML = `<span>${text}</span>`;
+            message.className = `message ${type}`;
+            message.style.display = 'flex';
+
+            if (type === 'success') {
+                setTimeout(() => {
+                    message.style.display = 'none';
+                }, 6000);
+            }
+        }
+
+        // Better error handling for fetch
+        window.addEventListener('fetch', (e) => {
+            // Prevent any network-related errors from crashing the app
+        }, true);
+    </script>
+</body>
+</html>
